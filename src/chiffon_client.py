@@ -24,24 +24,15 @@ def process_main(dict_conf):
     # 同時に辞書のデータ保存ディレクトリの値を絶対パスに更新
     lib.init.makeImageDir(dict_conf)
 
-    url_recog="http://{domain}:{port}{path}".format(domain=dict_conf["serv4recog"]["host"],port=dict_conf["serv4recog"]["port"],path=dict_conf["serv4recog"]["path"])
-    filepath_img = 'dummy.log'
-    result_feature = "0, 0, 0"
-    dict_query=lib.loop.make_dict_query_s4r(filepath_img,result_feature,dict_conf)
-    logger.info("URL(server4recog): "+url_recog)
-    logger.debug("Query(server4recog): " + str(dict_query))
 
-    try:
-        response = requests.get(url_recog,params=dict_query)
-        logger.info("Send dummy data to server4recog")
-    except requests.exceptions.RequestException:
-        logger.error("Fail to send dummy data to server4recog")
+
+    dict_query=lib.loop.make_dict_query_s4r(filepath_img,result_feature,dict_conf)
 
     log_file_path = os.path.join(dict_conf["chiffon_client"]["output_root"],dict_conf["session_id"],dict_conf['table_object_manager']['output_log'])
     output_to = open(log_file_path, 'w')
-    # TableObjectManager起動
-    p = lib.table_object_manager.startTableObjectManager(dict_conf, output_to)
-    logger.info("Table Object Manager is started.")
+    # TableObjectManager起動: サーバクライアントで処理をクライアント側に委譲したので実行しない
+    #p = lib.table_object_manager.startTableObjectManager(dict_conf, output_to)
+    #logger.info("Table Object Manager is started.")
 
     # ループ(画像取得->スレッド作成)
     try:
