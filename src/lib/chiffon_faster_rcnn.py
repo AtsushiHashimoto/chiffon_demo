@@ -5,9 +5,9 @@ import os
 import cv2
 import numpy as np
 
-caffe_root = '/home/mideal/tmp/py-faster-rcnn/caffe-fast-rcnn/'
+caffe_root = '/Users/ahashimoto/tmp/fasterrcnn_tmp/py-faster-rcnn'
 #caffe_root = '/Users/fujino/caffe/py-faster-rcnn/caffe-fast-rcnn/'
-frcnn_root = '/home/mideal/tmp/py-faster-rcnn/tools/'
+frcnn_root = '/Users/ahashimoto/tmp/fasterrcnn_tmp/py-faster-rcnn/tools/'
 #frcnn_root = '/Users/fujino/caffe/py-faster-rcnn/tools/'
 sys.path.insert(0, caffe_root + 'python')
 sys.path.insert(0, frcnn_root)
@@ -18,10 +18,6 @@ from fast_rcnn.config import cfg
 from fast_rcnn.test import im_detect
 from fast_rcnn.nms_wrapper import nms
 
-TOMATO_AVOCAD_CLASSES = ('__background__', 'chopping_block', 'knife', 'avocado', 'bowl', 'tomato', 'oil', 'measuring_spoon', 
-                            'mix', 'vinegar', 'salt', 'dish', 'pepper', 'basil', 'towel', 'tongs', 'chopsticks') 
-TOMATO_AVOCAD_CLASSESJ = ('__background__', u'まな板', u'包丁', u'アボカド', u'ボウル', u'トマト', u'油', u'計量スプーン', 
-                            '混合食材', u'酢', u'食塩', u'器', u'胡椒', u'バジル', u'布巾', u'トング', u'菜箸') 
 
 class Frcnn:
     """
@@ -33,10 +29,10 @@ class Frcnn:
         net: caffe.Net 
     """
     def __init__(self,
-                 caffemodel_path = '/home/mideal/tmp/py-faster-rcnn/output/faster_rcnn_end2end/kusk_train_val_tomato_avocado_all/zf_kusk_iter_100000.caffemodel',
-                 prototxt_path = '/home/mideal/tmp/py-faster-rcnn/models/kusk/ZF/faster_rcnn_end2end/MIRU2016/test.prototxt',
-                 classes = TOMATO_AVOCAD_CLASSES, 
-                 gpu = True, gpu_id = 0) :
+                 caffemodel_path,
+                 prototxt_path,
+                 classes, 
+                 gpu = False, gpu_id = 0) :
         self._caffemodel_path = caffemodel_path
         self._prototxt_path = prototxt_path
         self.classes = classes
