@@ -14,20 +14,23 @@ from watchdog.observers import Observer
 DIRNAME_LIST=["output_touch","output_release"]
 
 
-def process_loop(filepath_img_masked,dict_conf, mode):
+def process_loop(filepath_img_masked,dict_conf, mode, frcnn):
     logger = logging.getLogger()
     myutils.setup_child_process_logger(logger)
 
-    filepath_img=loop.getUnMaskedImage(filepath_img_masked,dict_conf, mode)
-    result_feature=loop.featureExtraction(filepath_img,dict_conf, mode)
+    result_recog=loop.recogByFasterRCNN(filepath_img_masked,dict_conf, mode, frcnn)
+    #result_feature=loop.featureExtraction(filepath_img,dict_conf, mode)
     #result_recog=loop.sendToServer4recog(filepath_img,dict_conf,result_feature, mode)
+    print(result_recog)
+    # sendToChiffonでresult_recogの翻訳が必要．modeは廃止
     loop.sendToChiffon(filepath_img,dict_conf,result_recog, mode)
 
 
 class ChangeHandler(FileSystemEventHandler):
-    def __init__(self,dict_conf):
+    def __init__(self,dict_conf,frcnn):
         self.dict_conf=dict_conf
         self.loop_job_list = []
+        self.frcnn = frcnn
 
     def on_created(self, event):
         logger = logging.getLogger()
@@ -47,7 +50,7 @@ class ChangeHandler(FileSystemEventHandler):
 
             logger.info("mode is " + mode)
 
-            proc_loop=multiprocessing.Process(target=process_loop,args=(event.src_path,self.dict_conf, mode))
+            proc_loop=multiprocessing.Process(target=process_loop,args=(event.src_path,self.dict_conf, mode, self.frcnn))
             self.loop_job_list.append(proc_loop)
             proc_loop.start()
 
@@ -64,7 +67,7 @@ class RawfileHandler(FileSystemEventHandler):
             sys.stdout.flush()
             self.i = self.i + 1
 
-def makeNewThreads(dict_conf):
+def makeNewThreads(dict_conf,fcnn):
     logger = logging.getLogger()
 
     event_handler=ChangeHandler(dict_conf)

@@ -6,10 +6,12 @@ import os
 import json
 import re
 import requests
-import subprocess
+#import subprocess
 import datetime
-import locale
+#import locale
 import time
+import cv2
+import chiffon_faster_rcnn as cfr
 
 import logging
 
@@ -20,15 +22,12 @@ import logging
 # ExtractObjectBoxRegion.exe whole_input_image object_image output_image
 # コマンド実行のサンプル
 # ExtractObjectBoxRegion.exe ..\bg_0002837.png ..\putobject_0002836_027.png ..\output.png
-def getUnMaskedImage(filepath_img_masked,dict_conf, mode):
+def recogByFasterRCNN(filepath_img_masked,dict_conf, frcnn):
     logger = logging.getLogger()
 
     logger.info("Start getUnMaskedImage")
 
     logger.debug("target file name : " + filepath_img_masked);
-
-    # %output_root%\%SESSION_ID%
-    base_dir = os.path.join(dict_conf["chiffon_client"]["output_root"],dict_conf["session_id"])
 
     # マスク済みファイル名からフレーム数を抜き出し、背景差分の元情報となるファイル名を取得する。
     maskedimage_filename = os.path.basename(filepath_img_masked)
@@ -37,6 +36,7 @@ def getUnMaskedImage(filepath_img_masked,dict_conf, mode):
     logger.info("frame No." + frame_number_astext)
     number_length = len(frame_number_astext)
 
+    '''
     if mode == "output_touch":
         # 背景画像は次の番号になる。
         frame_gap = 1
@@ -44,110 +44,47 @@ def getUnMaskedImage(filepath_img_masked,dict_conf, mode):
         # 背景画像は前の番号になる。
         frame_gap = -1
     frame_number = str(int(frame_number_astext) + frame_gap)
+    '''
+    frame_number = str(int(frame_number_astext))
 
-    bgimage_filename = "bg_" + frame_number.zfill(number_length) + "*" + myutils.get_ext(maskedimage_filename)
-    search_path=os.path.join(dict_conf["table_object_manager"]["output_rawimage"],bgimage_filename)
+    image_filename_base = frame_number.zfill(number_length) + "*" + myutils.get_ext(maskedimage_filename)
+        
+    
+    search_path=os.path.join(dict_conf["table_object_manager"]["output_bgimage"],"bg_" + image_filename_base)
     search_path=search_path.replace("\\", "/");
     logger.debug("search query: " + search_path)
 
-    bgimage_path = ''
+    bgimage_path = waitFileCreation(search_path,logger)
+    
+    search_path=os.path.join(dict_conf["table_object_manager"]["output_rawimage"],image_filename_base)
+    search_path=search_path.replace("\\", "/");
+    rawimage_path = waitFileCreation(search_path,logger)
+    
 
-    # 背景画像が出力されるのを待つ
+    # 画像読み込み
+    bg_img = cv2.imread(bgimage_path)
+    ob_img = cv2.imread(rawimage_path)
+    mask_img = cv2.imread(maskedimage_filename)
+
+    # 実行
+    return cfr.frcnn_detection(bg_img, ob_img, mask_img, frcnn = frcnn)
+
+        
+
+
+def waitFileCreation(search_path,logger):
+    # ファイルが出力されるのを待つ
     timeout = 0
-    while not os.path.exists(bgimage_path):
+    filepath=""
+    while not os.path.exists(search_path):
         time.sleep(1)
-        bgimage_path = glob.glob(search_path)[0]
-        logger.info("find : " + bgimage_path)
+        filepath = glob.glob(search_path)[0]
+        if logger:
+            logger.info("find : " + filepath) 
         if timeout > 10:
             break
         timeout = timeout + 1
-
-    # 縮小済み画像の出力先パス・ファイル名の作成
-    extractor_path=os.path.join(base_dir, dict_conf["object_region_box_extractor"][mode])
-    imgpath_output=os.path.join(extractor_path, maskedimage_filename)
-
-    # 実行
-    list_imgpath=[dict_conf["object_region_box_extractor"]["path_exec"], bgimage_path, filepath_img_masked, imgpath_output]
-    list_cmds = list_imgpath + dict_conf["object_region_box_extractor"]["default_options"].split()
-
-    logger.debug(str(list_cmds))
-
-    try:
-        p = subprocess.Popen(
-            list_cmds,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT
-            )
-        (stdoutdata, stderrdata) = p.communicate()
-    except subprocess.CalledProcessError as e:
-        logger.critical("({0}): {1}".format(e.returncode, e.output))
-    except OSError as e:
-        logger.critical("({0}): {1}".format(e.errno, e.strerror))
-
-    logger.info("Result : " + stdoutdata)
-    # retcode=myutils.callproc_cyg(dict_conf["object_region_box_extractor"]["path_exec"],list_opt)
-    if(int(p.returncode) == 0):
-        logger.info("End getUnMaskedImage")
-        return imgpath_output
-    else :
-        logger.warn("STDERR: " + stderrdata)
-        logger.warn("Fail getUnMaskedImage")
-        return ""
-
-# 取得した画像を特徴抽出プログラムに渡して実行
-
-def make_results_FE(filepath_img,dict_conf, mode):
-    logger = logging.getLogger()
-
-    path_exec = dict_conf["image_feature_extractor"]["path_exec"]
-
-    if(dict_conf["product_env"]["use_cygpath"]=="1"):
-        filepath_img = myutils.convert_to_cygpath(filepath_img)
-        path_exec = myutils.convert_to_cygpath(path_exec)
-
-    if(dict_conf["product_env"]["enable_image_feature_extractor"]=="1"):
-        # 特徴量抽出プログラムの実行
-        list_cmds = [path_exec, filepath_img] + dict_conf["image_feature_extractor"]["default_options"].split()
-
-        logger.debug(str(list_cmds))
-
-        try:
-            p = subprocess.Popen(
-                list_cmds,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT
-                )
-            (stdoutdata, stderrdata) = p.communicate()
-        except subprocess.CalledProcessError as e:
-            logger.critical("({0}): {1}".format(e.returncode, e.output))
-        except OSError as e:
-            logger.critical("({0}): {1}".format(e.errno, e.strerror))
-
-        # stdoutdata = subprocess.check_output(list_cmds)
-
-        if(int(p.returncode) == 0):
-            # 標準出力に出る特徴量
-            result_feature = stdoutdata
-
-            # 特徴量のフォルダに置換
-            file_abspath_img = os.path.abspath(filepath_img)
-            image_feature_extractor_path = file_abspath_img.replace(dict_conf["object_region_box_extractor"][mode], dict_conf["image_feature_extractor"][mode])
-
-            # ファイルの拡張子を特徴量用のものに変換
-            for ext in dict_conf["table_object_manager"]["fileexts"]:
-                if(image_feature_extractor_path.rfind(ext) > -1):
-                    image_feature_extractor_path = image_feature_extractor_path.replace(ext, dict_conf["image_feature_extractor"]["fileext"])
-                    break
-
-            # ファイルへ書き出し。
-            myutils.output_to_file(image_feature_extractor_path, result_feature)
-
-            return result_feature
-    else:
-        list_opt=[filepath_img]+dict_conf["image_feature_extractor"]["default_options"].split()
-        result_feature = " ".join([dict_conf["image_feature_extractor"]["path_exec"]]+list_opt)
-        return result_feature
-
+    return filepath
 
 # 特徴量の抽出
 # 特徴量を抽出する別実行ファイルの制約で、一時別のカレントディレクトリに移動する処理がある。
