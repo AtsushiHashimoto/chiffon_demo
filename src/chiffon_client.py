@@ -10,6 +10,8 @@ import lib.thread
 import lib.myutils
 import lib.loop
 import lib.table_object_manager
+
+
 from lib.log_record_socket_receiver import LogRecordSocketReceiver
 
 def process_main(dict_conf):
@@ -24,6 +26,8 @@ def process_main(dict_conf):
     # 同時に辞書のデータ保存ディレクトリの値を絶対パスに更新
     lib.init.makeImageDir(dict_conf)
 
+    
+    ####frcnn = lib.fasterrcnn.load()
 
 
     dict_query=lib.loop.make_dict_query_s4r(filepath_img,result_feature,dict_conf)
@@ -41,7 +45,7 @@ def process_main(dict_conf):
         pass
     finally:
         logger.info("chiffon_client is terminated.")
-        p.kill()
+        #p.kill()
         output_to.flush()
         output_to.close()
 
