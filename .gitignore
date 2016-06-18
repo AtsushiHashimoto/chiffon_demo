@@ -85,3 +85,25 @@ ENV/
 
 # Rope project settings
 .ropeproject
+._example
+._README.md
+._src
+example/._chiffon_client.conf
+example/._logging.conf
+example/._s4r_convtable.csv
+example/._workspace_end_filename.png
+output/._.DS_Store
+output/.DS_Store
+src/._.DS_Store
+src/._chiffon_client.py
+src/._lib
+src/.DS_Store
+src/lib/.___init__.py
+src/lib/._init.py
+src/lib/._log_record_socket_receiver.py
+src/lib/._loop.py
+src/lib/._myutils.py
+src/lib/._table_object_manager.py
+src/lib/._thread.py
+src/lib/fasterrcnn.py
+._.gitignore
